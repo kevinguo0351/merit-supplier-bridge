@@ -140,6 +140,29 @@ input[type=range]{accent-color:var(--blue)}
 footer{padding:16px 22px; color:var(--steel); font-size:12px; border-top:1px solid var(--line); text-align:center}
 .help{font-size:12px; color:var(--steel)}
 .note{font-size:12px; color:var(--steel); font-style:italic}
+
+/* ---- motion & interaction polish (respects prefers-reduced-motion) ---- */
+@media (prefers-reduced-motion: no-preference){
+  header{background:linear-gradient(120deg,#13243A 0%,#1C3658 30%,#13243A 55%,#18304e 80%,#13243A 100%); background-size:220% 220%; animation:headerShift 16s ease infinite}
+  @keyframes headerShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+  .view.active{animation:viewIn .5s cubic-bezier(.22,.8,.36,1) both}
+  @keyframes viewIn{from{opacity:0; transform:translateY(12px)} to{opacity:1; transform:none}}
+
+  .meter>span{transition:width .65s cubic-bezier(.22,.8,.36,1)}
+
+  .dot{transform-box:fill-box; transform-origin:center; transition:transform .2s ease, filter .2s ease}
+  .dot:hover{transform:scale(1.18); filter:drop-shadow(0 0 7px rgba(37,99,201,.85))}
+
+  .statcard{transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease}
+  .statcard:hover{transform:translateY(-2px); box-shadow:0 8px 20px rgba(19,36,58,.12); border-color:#2563C9}
+
+  .panel{transition:box-shadow .22s ease}
+  .panel:hover{box-shadow:0 6px 18px rgba(19,36,58,.07)}
+
+  .treat, .status, .gate{transition:transform .18s ease}
+  .treat:hover, .status:hover, .gate:hover{transform:translateY(-1px)}
+}
 </style>
 </head>
 <body>
@@ -892,6 +915,13 @@ function renderReadiness(ws){
   html+=`<div class="gate ${open?'open':'closed'}">${open?t("ws.gateopen"):t("ws.gateclosed")}</div>`;
   html+=`<p class="note">${t("ws.gaterule")}</p>`;
   box.innerHTML=html;
+  // animate meter fills from 0 → target (skipped under reduced motion)
+  if(window.matchMedia("(prefers-reduced-motion: no-preference)").matches){
+    box.querySelectorAll(".meter>span").forEach(sp=>{
+      const target=sp.style.width; sp.style.width="0%";
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{ sp.style.width=target; }));
+    });
+  }
 }
 
 function renderCalc(ws, sup){
@@ -1080,6 +1110,29 @@ function renderAll(){
 function switchTab(tab){
   document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===tab));
   document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active", v.id==="view-"+tab));
+  animateActiveNumbers();
+}
+
+/* ---------------- motion polish: count-up numbers ---------------- */
+function countUp(el){
+  const m=el.textContent.trim().match(/^([+-]?\d+(?:\.\d+)?)(.*)$/);
+  if(!m) return;
+  const numStr=m[1], suffix=m[2], end=parseFloat(numStr);
+  if(isNaN(end)) return;
+  const dec=numStr.includes(".")?numStr.split(".")[1].length:0;
+  const fmt=v=>dec? v.toFixed(dec) : String(Math.round(v));
+  const dur=850, t0=performance.now();
+  function step(now){
+    let p=Math.min((now-t0)/dur,1);
+    p=1-Math.pow(1-p,3); // ease-out cubic
+    el.textContent=fmt(end*p)+suffix;
+    if(p<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+function animateActiveNumbers(){
+  if(window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  document.querySelectorAll(".view.active .statbig, .view.active .readout b").forEach(countUp);
 }
 
 function init(){
@@ -1099,6 +1152,7 @@ function init(){
   document.getElementById("printBtn").addEventListener("click",printSummary);
   document.getElementById("claimSel").addEventListener("change",e=>{state.claimCurrent=e.target.value;save();renderClaimBuilder();});
   renderAll();
+  animateActiveNumbers();
   try{ const q=new URLSearchParams(location.search); if(q.get("tab")) switchTab(q.get("tab")); }catch(e){}
 }
 document.addEventListener("DOMContentLoaded",init);
