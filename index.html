@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Merit Supplier Bridge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#13243A; --paper:#F7F9FB; --blue:#2563C9; --amber:#E8A317;
+  --green:#2E8B57; --red:#C0392B; --steel:#6B7A8C;
+  --line:#C9D3DD; --panel:#FFFFFF;
+  /* treatment tiers */
+  --t-support:#D9480F; --t-harvest:#2563C9; --t-shared:#D6A20A; --t-light:#16A085; --t-escalate:#8B1E1E;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:"Atkinson Hyperlegible","Noto Sans SC",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  background:var(--paper); color:var(--ink); font-size:15px; line-height:1.45;
+}
+:lang(zh){font-family:"Noto Sans SC","Atkinson Hyperlegible",system-ui,sans-serif;}
+h1,h2,h3{font-weight:700; line-height:1.2; margin:0 0 .4em}
+a{color:var(--blue)}
+button{font-family:inherit; font-size:14px; cursor:pointer}
+:focus-visible{outline:3px solid var(--amber); outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* header */
+header{background:var(--ink); color:#fff; padding:14px 22px; display:flex; flex-wrap:wrap; align-items:center; gap:14px}
+header .brand{display:flex; flex-direction:column}
+header .brand .en{font-size:19px; font-weight:700}
+header .brand .sub{font-size:12px; color:#AFC0D4}
+header .spacer{flex:1}
+.langsw{display:flex; border:1px solid #42546B; border-radius:6px; overflow:hidden}
+.langsw button{background:transparent; color:#CDD9E6; border:none; padding:6px 12px}
+.langsw button[aria-pressed="true"]{background:var(--blue); color:#fff}
+.btn{background:var(--blue); color:#fff; border:none; border-radius:6px; padding:8px 14px; font-weight:700}
+.btn.ghost{background:transparent; color:#CDD9E6; border:1px solid #42546B}
+.btn.sm{padding:5px 10px; font-size:13px}
+.btn.sec{background:#fff; color:var(--ink); border:1px solid var(--line)}
+
+/* tabs */
+nav.tabs{display:flex; gap:2px; background:var(--ink); padding:0 22px}
+nav.tabs button{background:transparent; border:none; color:#AFC0D4; padding:12px 18px; font-weight:700; font-size:15px; border-bottom:3px solid transparent}
+nav.tabs button[aria-selected="true"]{color:#fff; border-bottom-color:var(--amber)}
+
+main{padding:20px 22px 40px; max-width:1680px; margin:0 auto}
+.view{display:none}
+.view.active{display:block}
+
+/* title-block panel motif */
+.panel{background:var(--panel); border:1px solid var(--line); border-radius:4px; margin-bottom:18px}
+.panel>.hdr{display:flex; align-items:center; gap:10px; flex-wrap:wrap; border-bottom:1px solid var(--line); background:#EEF3F8; padding:7px 12px; font-size:12px; color:var(--steel)}
+.panel>.hdr .ttl{font-weight:700; color:var(--ink); font-size:14px}
+.panel>.hdr .meta{font-family:ui-monospace,Menlo,Consolas,monospace; letter-spacing:.3px}
+.panel>.bd{padding:14px}
+.illus{display:inline-block; background:#FDF3D7; color:#8a6400; border:1px solid var(--amber); border-radius:3px; padding:2px 8px; font-size:12px; font-weight:700}
+
+/* controls row */
+.controls{display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end}
+.ctl{display:flex; flex-direction:column; gap:4px; font-size:13px}
+.ctl label{font-weight:700; color:var(--steel)}
+.toggle{display:inline-flex; border:1px solid var(--line); border-radius:6px; overflow:hidden}
+.toggle button{background:#fff; border:none; padding:7px 12px; color:var(--steel); font-weight:700}
+.toggle button[aria-pressed="true"]{background:var(--blue); color:#fff}
+.readout{font-size:13px; background:#EEF3F8; border:1px solid var(--line); border-radius:4px; padding:8px 12px}
+.readout b{color:var(--blue)}
+
+/* matrix layout */
+.triage-grid{display:grid; grid-template-columns:minmax(440px,1fr) minmax(520px,1.1fr); gap:18px; align-items:start}
+@media(max-width:1100px){.triage-grid{grid-template-columns:1fr}}
+
+svg.matrix{width:100%; height:auto; display:block; background:#fff}
+.dot{cursor:pointer}
+@media (prefers-reduced-motion: no-preference){ .dot{transition:cx .9s cubic-bezier(.4,0,.2,1), cy .9s ease} }
+
+/* table */
+.tblwrap{overflow:auto; max-height:640px; border:1px solid var(--line); border-radius:4px}
+table{border-collapse:collapse; width:100%; font-size:13px}
+th,td{padding:6px 9px; text-align:left; border-bottom:1px solid #E4EAF0; white-space:nowrap}
+th{position:sticky; top:0; background:#EEF3F8; z-index:2; font-size:12px; color:var(--steel)}
+tbody tr:hover{background:#F2F7FF}
+tr.topn{background:#FFF8E6}
+tr.topn:hover{background:#FFF1CC}
+td.num{text-align:right; font-variant-numeric:tabular-nums}
+
+/* inspection tag chips */
+.tag{display:inline-block; padding:2px 8px; border-radius:2px; font-size:12px; font-weight:700; border:1px solid; position:relative; padding-left:16px}
+.tag::before{content:""; position:absolute; left:5px; top:50%; width:5px; height:5px; border-radius:50%; transform:translateY(-50%); background:currentColor}
+.tag.ns{color:var(--steel); border-color:var(--steel); background:#F1F4F7}
+.tag.up{color:#8a6400; border-color:var(--amber); background:#FDF3D7}
+.tag.rv{color:var(--blue); border-color:var(--blue); background:#E7F0FF}
+.tag.vf{color:var(--green); border-color:var(--green); background:#E4F3EA}
+
+.treat{display:inline-block; padding:2px 9px; border-radius:2px; color:#fff; font-size:12px; font-weight:700}
+.treat.support{background:var(--t-support)} .treat.harvest{background:var(--t-harvest)}
+.treat.shared{background:var(--t-shared)} .treat.light{background:var(--t-light)}
+.treat.escalate{background:var(--t-escalate)}
+
+select,input[type=number],input[type=text]{font-family:inherit; font-size:13px; padding:4px 6px; border:1px solid var(--line); border-radius:4px; background:#fff; color:var(--ink)}
+input[type=range]{accent-color:var(--blue)}
+
+/* workspace */
+.ws-grid{display:grid; grid-template-columns:1fr; gap:18px}
+.theme{border:1px solid var(--line); border-radius:4px; margin-bottom:12px}
+.theme>h3{margin:0; padding:8px 12px; background:#EEF3F8; font-size:14px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--line)}
+.ev{display:grid; grid-template-columns:1fr auto; gap:6px 12px; padding:10px 12px; border-bottom:1px solid #EEF2F6; align-items:start}
+.ev:last-child{border-bottom:none}
+.ev .why{font-size:12px; color:var(--steel); grid-column:1/2}
+.ev .ctrls{grid-column:2/3; display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:flex-end}
+.ev .fname{font-size:12px; color:var(--green); grid-column:1/3}
+.meter{height:14px; background:#E4EAF0; border-radius:7px; overflow:hidden; border:1px solid var(--line)}
+.meter>span{display:block; height:100%; background:var(--green)}
+.kv{display:grid; grid-template-columns:1fr auto; gap:4px 14px; font-size:13px}
+.kv .k{color:var(--steel)}
+.kv .v{text-align:right; font-weight:700; font-variant-numeric:tabular-nums}
+.gate{padding:10px 12px; border-radius:4px; font-weight:700; border:1px solid}
+.gate.open{background:#E4F3EA; border-color:var(--green); color:var(--green)}
+.gate.closed{background:#FDF3D7; border-color:var(--amber); color:#8a6400}
+.commit{background:#E7F0FF; border:1px solid var(--blue); border-radius:4px; padding:8px 12px; font-size:13px; margin:4px 0}
+.cols2{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+.cols3{display:grid; grid-template-columns:repeat(3,1fr); gap:16px}
+@media(max-width:860px){.cols2,.cols3{grid-template-columns:1fr}}
+.qr{width:96px;height:96px;border:2px solid var(--ink); display:grid; place-items:center; font-size:11px; text-align:center; color:var(--steel); background:repeating-linear-gradient(45deg,#fff,#fff 6px,#eef 6px,#eef 12px)}
+
+/* claims */
+.claim{border:1px solid var(--line); border-radius:4px; padding:12px; margin-bottom:10px}
+.claim .status{font-weight:700; padding:2px 9px; border-radius:2px; font-size:12px; color:#fff}
+.status.allowed{background:var(--green)} .status.qualifier{background:var(--amber)} .status.blocked{background:var(--red)}
+.approved{background:#EEF3F8; border-left:4px solid var(--blue); padding:8px 12px; margin-top:8px; font-size:14px}
+.unknown{color:var(--red); font-size:13px}
+.statbig{font-size:26px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--blue)}
+.statrow{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px}
+.statcard{border:1px solid var(--line); border-radius:4px; padding:12px; background:#fff}
+.statcard .lbl{font-size:12px; color:var(--steel)}
+
+footer{padding:16px 22px; color:var(--steel); font-size:12px; border-top:1px solid var(--line); text-align:center}
+.help{font-size:12px; color:var(--steel)}
+.note{font-size:12px; color:var(--steel); font-style:italic}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <span class="en">Merit Supplier Bridge</span>
+    <span class="sub" id="brandSub">Puente de Proveedores · 供应商桥梁</span>
+  </div>
+  <div class="spacer"></div>
+  <div class="langsw" role="group" aria-label="Language">
+    <button data-lang="en" aria-pressed="true">EN</button>
+    <button data-lang="es" aria-pressed="false">ES</button>
+    <button data-lang="zh" aria-pressed="false">中文</button>
+  </div>
+  <button class="btn ghost sm" id="resetBtn"></button>
+</header>
+
+<nav class="tabs" role="tablist">
+  <button role="tab" aria-selected="true" data-tab="triage" id="tab-triage"></button>
+  <button role="tab" aria-selected="false" data-tab="workspace" id="tab-workspace"></button>
+  <button role="tab" aria-selected="false" data-tab="claims" id="tab-claims"></button>
+</nav>
+
+<main>
+  <!-- ============ TRIAGE ============ -->
+  <section class="view active" id="view-triage" role="tabpanel">
+    <div class="panel">
+      <div class="hdr"><span class="ttl" data-i="triage.title"></span><span class="spacer" style="flex:1"></span><span class="illus" data-i="illus"></span></div>
+      <div class="bd">
+        <p class="help" data-i="triage.lede"></p>
+        <div class="controls">
+          <div class="ctl">
+            <label data-i="triage.rankby"></label>
+            <div class="toggle" role="group">
+              <button id="rankSpend" aria-pressed="false" data-i="triage.byspend"></button>
+              <button id="rankRisk" aria-pressed="true" data-i="triage.byrisk"></button>
+            </div>
+          </div>
+          <div class="ctl">
+            <label for="topN"><span data-i="triage.topn"></span>: <b id="topNval">8</b></label>
+            <input type="range" id="topN" min="3" max="16" value="8">
+          </div>
+          <div class="readout" id="readout"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="triage-grid">
+      <div class="panel">
+        <div class="hdr"><span class="ttl" data-i="triage.matrixttl"></span><span class="meta">RISK = I × V</span></div>
+        <div class="bd">
+          <div id="matrixWrap"></div>
+          <p class="help" data-i="triage.matrixhelp"></p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="hdr"><span class="ttl" data-i="triage.tablettl"></span><span class="meta" id="rowcount"></span></div>
+        <div class="bd" style="padding:0">
+          <div class="tblwrap">
+            <table id="supTable"><thead id="supHead"></thead><tbody id="supBody"></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="detailPanel" style="display:none">
+      <div class="hdr"><span class="ttl" id="detailTtl"></span><span class="meta" id="detailMeta"></span>
+        <span style="flex:1"></span><button class="btn sec sm" id="detailClose">×</button></div>
+      <div class="bd"><div class="cols2" id="detailBody"></div></div>
+    </div>
+  </section>
+
+  <!-- ============ WORKSPACE ============ -->
+  <section class="view" id="view-workspace" role="tabpanel">
+    <div class="panel">
+      <div class="hdr"><span class="ttl" data-i="ws.title"></span><span style="flex:1"></span><span class="illus" data-i="illus"></span></div>
+      <div class="bd">
+        <p class="help" data-i="ws.lede"></p>
+        <div class="controls">
+          <div class="ctl"><label for="wsSel" data-i="ws.pick"></label>
+            <select id="wsSel"></select></div>
+          <button class="btn sm" id="exportBtn" data-i="ws.export"></button>
+          <button class="btn sec sm" id="printBtn" data-i="ws.print"></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="cols2">
+      <div>
+        <div id="themes"></div>
+      </div>
+      <div>
+        <div class="panel">
+          <div class="hdr"><span class="ttl" data-i="ws.readiness"></span></div>
+          <div class="bd" id="readinessBox"></div>
+        </div>
+        <div class="panel">
+          <div class="hdr"><span class="ttl" data-i="ws.calc"></span></div>
+          <div class="bd" id="calcBox"></div>
+        </div>
+        <div class="panel">
+          <div class="hdr"><span class="ttl" data-i="ws.support"></span></div>
+          <div class="bd" id="supportBox"></div>
+        </div>
+        <div class="panel">
+          <div class="hdr"><span class="ttl" data-i="ws.commitments"></span></div>
+          <div class="bd" id="commitBox"></div>
+        </div>
+        <div class="panel">
+          <div class="hdr"><span class="ttl" data-i="ws.voice"></span><span style="flex:1"></span><span class="illus" data-i="ws.prototype"></span></div>
+          <div class="bd" id="voiceBox"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CLAIMS ============ -->
+  <section class="view" id="view-claims" role="tabpanel">
+    <div class="panel">
+      <div class="hdr"><span class="ttl" data-i="cl.title"></span><span style="flex:1"></span><span class="illus" data-i="illus"></span></div>
+      <div class="bd">
+        <p class="help" data-i="cl.lede"></p>
+        <div class="statrow" id="clStats"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="hdr"><span class="ttl" data-i="cl.builder"></span></div>
+      <div class="bd">
+        <div class="ctl" style="max-width:520px">
+          <label for="claimSel" data-i="cl.pick"></label>
+          <select id="claimSel"></select>
+        </div>
+        <div id="claimOut" style="margin-top:12px"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="hdr"><span class="ttl" data-i="cl.audience"></span></div>
+      <div class="bd" style="padding:0"><div class="tblwrap" style="max-height:none"><table id="audTable"></table></div></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <span class="illus" data-i="illus"></span> &nbsp; <span data-i="footer"></span>
+</footer>
+
+<script>
+"use strict";
+/* =========================================================================
+   Merit Supplier Bridge — offline single-file prototype
+   All displayed numbers are computed from data/inputs below.
+   ========================================================================= */
+
+const LS_KEY = "merit-supplier-bridge-v1";
+
+/* ---------------- i18n ---------------- */
+const I18N = {
+ en:{
+  dir:"ltr",
+  illus:"Illustrative data — not real Merit suppliers",
+  footer:"Merit Supplier Bridge — prototype for BYU Ballard Center × Merit Medical. All figures computed live from illustrative inputs.",
+  reset:"Reset demo data",
+  "tab.triage":"Triage", "tab.workspace":"Supplier workspace", "tab.claims":"Claims ledger",
+  "triage.title":"Triage — who do we help first?",
+  "triage.lede":"Prioritise by risk-to-Merit = irreplaceable × invisible, not by spend. High-irreplaceability, high-invisibility suppliers get funded bilingual support first.",
+  "triage.rankby":"Rank table by", "triage.byspend":"Spend", "triage.byrisk":"Risk to Merit",
+  "triage.topn":"Highlight top N",
+  "triage.readout":"Top {n} by spend includes {x} of {y} {t} suppliers",
+  "triage.matrixttl":"Risk matrix", "triage.tablettl":"Supplier register",
+  "triage.matrixhelp":"x = invisibility, y = irreplaceability, dot size = annual spend. The dashed lines mark the 3.5 high/low threshold. Dots drift left as a supplier uploads evidence in its workspace.",
+  "col.name":"Supplier","col.country":"Country","col.cat":"Category","col.spend":"Annual spend","col.rank":"Spend rank","col.irr":"Irrepl.","col.inv":"Invis.","col.risk":"Risk","col.treat":"Treatment","col.flag":"Red flag",
+  "treat.support":"Support first","treat.harvest":"Harvest","treat.shared":"Shared support","treat.light":"Light touch","treat.escalate":"Escalate now",
+  "detail.irr":"Irreplaceability sub-factors","detail.inv":"Invisibility sub-factors","detail.derived":"Derived from workspace evidence",
+  "f.alt":"Qualified alternates","f.requal":"Requalification time","f.inv":"Inventory cover","f.clin":"Clinical criticality",
+  "f.evid":"Evidence status","f.region":"Regional reporting maturity","f.staff":"Dedicated sustainability staff","f.onsite":"Last on-site check",
+  "o.alt.none":"0 (sole source)","o.alt.one":"1","o.alt.multi":"2+",
+  "o.requal.gt9":">9 months","o.requal.m6_9":"6–9 months","o.requal.m3_6":"3–6 months","o.requal.lt3":"<3 months",
+  "o.inv.lt4":"<4 weeks","o.inv.w4_8":"4–8 weeks","o.inv.gt8":">8 weeks",
+  "o.clin.critical":"Critical / procedural","o.clin.procedural":"Procedural","o.clin.moderate":"Moderate","o.clin.low":"Low",
+  "o.evid.none":"None","o.evid.self":"Self-reported only","o.evid.partial":"Partial, Merit-reviewed","o.evid.third":"EcoVadis / third-party",
+  "o.region.5":"MX / CN / SE Asia","o.region.3":"LatAm / other","o.region.1":"US / EU / JP",
+  "o.staff.none":"None","o.staff.part":"Part-time","o.staff.team":"Team",
+  "o.onsite.never":"Never","o.onsite.gt3":">3 years ago","o.onsite.lt1":"<1 year ago",
+  "redflag":"Serious labor / safety allegation",
+  "ws.title":"Supplier workspace — show what you already do",
+  "ws.lede":"Use documents your plant already has. Attach a file name (nothing is uploaded anywhere in this prototype). Merit reviews, then verifies on site.",
+  "ws.pick":"Supplier","ws.export":"Export evidence pack","ws.print":"Printable summary","ws.prototype":"Prototype only",
+  "ws.readiness":"Readiness","ws.calc":"Energy & emissions calculator","ws.support":"Support Merit provides","ws.commitments":"Merit's commitments to you","ws.voice":"Anonymous worker voice",
+  "st.not_started":"Not started","st.uploaded":"Uploaded","st.reviewed":"Reviewed by Merit","st.verified":"Verified on-site",
+  "th.environment":"Environment","th.labor":"Labor & Human Rights","th.ethics":"Ethics","th.procurement":"Sustainable Procurement",
+  "ws.overall":"Overall complete","ws.gateopen":"EcoVadis-ready — invited to the full assessment","ws.gateclosed":"Not yet EcoVadis-ready",
+  "ws.gaterule":"Gate opens at ≥80% of items Uploaded or better, with no Labor item left Not started.",
+  "ws.attach":"Attach file name","ws.file":"File",
+  "ws.kwh":"Annual electricity (kWh)","ws.diesel":"Diesel (litres/yr)","ws.gas":"Natural gas (m³/yr)",
+  "ws.gridf":"Grid factor (kgCO₂e/kWh)","ws.dieself":"Diesel factor (kgCO₂e/L)","ws.gasf":"Gas factor (kgCO₂e/m³)",
+  "ws.factnote":"Defaults, editable — verify against current official factors.",
+  "ws.totalco2":"Total site emissions","ws.revshare":"% of your revenue from Merit","ws.attrib":"Attributable to Merit's orders (Scope 3 Cat 1, supplier-specific)",
+  "ws.eeiof":"Spend-based EEIO factor (kgCO₂e/$)","ws.eeio":"Spend-based estimate (for comparison)","ws.eeionote":"Supplier-specific data (left) replaces the rough spend estimate (right).",
+  "ws.hours":"Bilingual engineer hours","ws.used":"used","ws.remaining":"remaining",
+  "ws.fee":"EcoVadis fee covered by Merit (year 1)","ws.finance":"Early-payment eligibility (sustainability-linked, bank-funded)",
+  "ws.unlocked":"Unlocked at gate","ws.locked":"Unlocks at gate","yes":"Yes",
+  "commit.1":"Your data will never be used in price negotiations.","commit.2":"No supplier is dropped for immature reporting.","commit.3":"Merit will not lengthen your payment terms.",
+  "voice.intro":"Scan to answer anonymously in your language. Prototype placeholder.",
+  "voice.q1":"Do you get paid for all overtime?","voice.q2":"Can you raise a concern without fear?","voice.q3":"Is drinking water and PPE always available?",
+  "cl.title":"Claims ledger — say only what the data supports",
+  "cl.lede":"Program statistics below are computed live from the triage and workspace data. The claim builder blocks anything the evidence cannot back.",
+  "cl.builder":"Claim builder","cl.pick":"Choose a claim to test",
+  "cl.audience":"Audience & cadence",
+  "cl.evtier":"Evidence tier","cl.coverage":"Coverage","cl.unknown":"What remains unknown","cl.approved":"Approved wording",
+  "cl.tier.self":"Self-reported","cl.tier.reviewed":"Merit-reviewed","cl.tier.third":"Independently verified","cl.tier.mixed":"Mixed",
+  "st.allowed":"Allowed","st.qualifier":"Allowed with qualifier","st.blocked":"Blocked",
+  "stat.bytreat":"Suppliers by treatment","stat.supportrev":"Support-first with reviewed evidence","stat.spendcov":"Spend covered by EcoVadis/equiv.","stat.critcov":"Critical suppliers covered","stat.s3":"Scope 3 Cat 1 from supplier-specific data",
+  "aud.header":["Audience","What Merit shares","Cadence"],
+  "aud.rows":[
+   ["Board","Risk-tiered supplier map, gate progress, blocked-claim log","Quarterly"],
+   ["Hospital customers","Only verified coverage figures with period and evidence tier","On request / annually"],
+   ["Investors","Scope 3 Cat 1 method, % supplier-specific vs estimated, no reduction claims yet","Annual report"],
+   ["Employees","Program progress, wave 1 support stories","Monthly"],
+   ["Suppliers","Their own readiness, support hours, finance eligibility","Continuous in workspace"]
+  ]
+ },
+ es:{
+  dir:"ltr",
+  illus:"Datos ilustrativos — no son proveedores reales de Merit",
+  footer:"Merit Supplier Bridge — prototipo para BYU Ballard Center × Merit Medical. Todas las cifras se calculan en vivo a partir de datos ilustrativos.",
+  reset:"Restablecer datos de demostración",
+  "tab.triage":"Priorización","tab.workspace":"Espacio del proveedor","tab.claims":"Registro de afirmaciones",
+  "triage.title":"Priorización — ¿a quién ayudamos primero?",
+  "triage.lede":"Priorice por riesgo-para-Merit = insustituible × invisible, no por gasto. Los proveedores muy insustituibles y muy invisibles reciben primero apoyo bilingüe financiado.",
+  "triage.rankby":"Ordenar tabla por","triage.byspend":"Gasto","triage.byrisk":"Riesgo para Merit",
+  "triage.topn":"Resaltar los N principales",
+  "triage.readout":"El top {n} por gasto incluye {x} de {y} proveedores {t}",
+  "triage.matrixttl":"Matriz de riesgo","triage.tablettl":"Registro de proveedores",
+  "triage.matrixhelp":"x = invisibilidad, y = insustituibilidad, tamaño del punto = gasto anual. Las líneas marcan el umbral alto/bajo de 3,5. Los puntos se mueven a la izquierda al subir evidencia.",
+  "col.name":"Proveedor","col.country":"País","col.cat":"Categoría","col.spend":"Gasto anual","col.rank":"Rango de gasto","col.irr":"Insust.","col.inv":"Invis.","col.risk":"Riesgo","col.treat":"Tratamiento","col.flag":"Alerta",
+  "treat.support":"Apoyo primero","treat.harvest":"Recolectar","treat.shared":"Apoyo compartido","treat.light":"Toque ligero","treat.escalate":"Escalar ahora",
+  "detail.irr":"Subfactores de insustituibilidad","detail.inv":"Subfactores de invisibilidad","detail.derived":"Derivado de la evidencia del espacio",
+  "f.alt":"Alternativas calificadas","f.requal":"Tiempo de recalificación","f.inv":"Cobertura de inventario","f.clin":"Criticidad clínica",
+  "f.evid":"Estado de evidencia","f.region":"Madurez normativa regional","f.staff":"Personal de sostenibilidad","f.onsite":"Última inspección in situ",
+  "o.alt.none":"0 (fuente única)","o.alt.one":"1","o.alt.multi":"2+",
+  "o.requal.gt9":">9 meses","o.requal.m6_9":"6–9 meses","o.requal.m3_6":"3–6 meses","o.requal.lt3":"<3 meses",
+  "o.inv.lt4":"<4 semanas","o.inv.w4_8":"4–8 semanas","o.inv.gt8":">8 semanas",
+  "o.clin.critical":"Crítico / procedimiento","o.clin.procedural":"Procedimiento","o.clin.moderate":"Moderado","o.clin.low":"Bajo",
+  "o.evid.none":"Ninguna","o.evid.self":"Solo autodeclarada","o.evid.partial":"Parcial, revisada por Merit","o.evid.third":"EcoVadis / tercero",
+  "o.region.5":"MX / CN / Sudeste asiático","o.region.3":"Latinoamérica / otro","o.region.1":"EE.UU. / UE / JP",
+  "o.staff.none":"Ninguno","o.staff.part":"Medio tiempo","o.staff.team":"Equipo",
+  "o.onsite.never":"Nunca","o.onsite.gt3":"Hace >3 años","o.onsite.lt1":"Hace <1 año",
+  "redflag":"Denuncia grave laboral / de seguridad",
+  "ws.title":"Espacio del proveedor — muestre lo que ya hace",
+  "ws.lede":"Use documentos que su planta ya tiene. Adjunte un nombre de archivo (nada se sube en este prototipo). Merit revisa y luego verifica in situ.",
+  "ws.pick":"Proveedor","ws.export":"Exportar paquete de evidencia","ws.print":"Resumen imprimible","ws.prototype":"Solo prototipo",
+  "ws.readiness":"Preparación","ws.calc":"Calculadora de energía y emisiones","ws.support":"Apoyo que da Merit","ws.commitments":"Compromisos de Merit con usted","ws.voice":"Voz anónima del trabajador",
+  "st.not_started":"Sin iniciar","st.uploaded":"Subido","st.reviewed":"Revisado por Merit","st.verified":"Verificado in situ",
+  "th.environment":"Medio ambiente","th.labor":"Trabajo y derechos humanos","th.ethics":"Ética","th.procurement":"Compras sostenibles",
+  "ws.overall":"Completado total","ws.gateopen":"Listo para EcoVadis — invitado a la evaluación completa","ws.gateclosed":"Aún no listo para EcoVadis",
+  "ws.gaterule":"Se habilita con ≥80% de ítems Subidos o mejor, sin ningún ítem de Trabajo Sin iniciar.",
+  "ws.attach":"Adjuntar nombre de archivo","ws.file":"Archivo",
+  "ws.kwh":"Electricidad anual (kWh)","ws.diesel":"Diésel (litros/año)","ws.gas":"Gas natural (m³/año)",
+  "ws.gridf":"Factor de red (kgCO₂e/kWh)","ws.dieself":"Factor diésel (kgCO₂e/L)","ws.gasf":"Factor gas (kgCO₂e/m³)",
+  "ws.factnote":"Valores por defecto, editables — verifique con factores oficiales vigentes.",
+  "ws.totalco2":"Emisiones totales del sitio","ws.revshare":"% de sus ingresos de Merit","ws.attrib":"Atribuible a los pedidos de Merit (Alcance 3 Cat 1, específico del proveedor)",
+  "ws.eeiof":"Factor EEIO por gasto (kgCO₂e/$)","ws.eeio":"Estimación por gasto (comparación)","ws.eeionote":"Los datos específicos (izquierda) reemplazan la estimación por gasto (derecha).",
+  "ws.hours":"Horas de ingeniero bilingüe","ws.used":"usadas","ws.remaining":"restantes",
+  "ws.fee":"Cuota EcoVadis cubierta por Merit (año 1)","ws.finance":"Elegibilidad de pago anticipado (ligado a sostenibilidad, financiado por banco)",
+  "ws.unlocked":"Habilitado en la meta","ws.locked":"Se habilita en la meta","yes":"Sí",
+  "commit.1":"Sus datos nunca se usarán en negociaciones de precio.","commit.2":"Ningún proveedor es excluido por reportes inmaduros.","commit.3":"Merit no alargará sus plazos de pago.",
+  "voice.intro":"Escanee para responder de forma anónima en su idioma. Marcador de posición del prototipo.",
+  "voice.q1":"¿Le pagan todas las horas extra?","voice.q2":"¿Puede plantear una inquietud sin temor?","voice.q3":"¿Hay siempre agua potable y EPP?",
+  "cl.title":"Registro de afirmaciones — diga solo lo que los datos respaldan",
+  "cl.lede":"Las estadísticas se calculan en vivo a partir de los datos de priorización y del espacio. El constructor bloquea lo que la evidencia no respalda.",
+  "cl.builder":"Constructor de afirmaciones","cl.pick":"Elija una afirmación para probar",
+  "cl.audience":"Audiencia y cadencia",
+  "cl.evtier":"Nivel de evidencia","cl.coverage":"Cobertura","cl.unknown":"Qué sigue sin saberse","cl.approved":"Redacción aprobada",
+  "cl.tier.self":"Autodeclarada","cl.tier.reviewed":"Revisada por Merit","cl.tier.third":"Verificada independientemente","cl.tier.mixed":"Mixta",
+  "st.allowed":"Permitida","st.qualifier":"Permitida con matiz","st.blocked":"Bloqueada",
+  "stat.bytreat":"Proveedores por tratamiento","stat.supportrev":"Apoyo-primero con evidencia revisada","stat.spendcov":"Gasto cubierto por EcoVadis/equiv.","stat.critcov":"Proveedores críticos cubiertos","stat.s3":"Alcance 3 Cat 1 con datos específicos",
+  "aud.header":["Audiencia","Qué comparte Merit","Cadencia"],
+  "aud.rows":[
+   ["Consejo","Mapa de proveedores por riesgo, avance de metas, registro de afirmaciones bloqueadas","Trimestral"],
+   ["Clientes hospitalarios","Solo cifras de cobertura verificadas con periodo y nivel de evidencia","A pedido / anual"],
+   ["Inversionistas","Método de Alcance 3 Cat 1, % específico vs estimado, aún sin afirmaciones de reducción","Informe anual"],
+   ["Empleados","Avance del programa, historias de apoyo de la ola 1","Mensual"],
+   ["Proveedores","Su propia preparación, horas de apoyo, elegibilidad de financiamiento","Continuo en el espacio"]
+  ]
+ },
+ zh:{
+  dir:"ltr",
+  illus:"示例数据——非 Merit 真实供应商",
+  footer:"供应商桥梁——BYU Ballard Center × Merit Medical 原型。所有数值均由示例输入实时计算。",
+  reset:"重置演示数据",
+  "tab.triage":"分诊","tab.workspace":"供应商工作区","tab.claims":"声明台账",
+  "triage.title":"分诊——先帮谁？",
+  "triage.lede":"按对 Merit 的风险 = 不可替代 × 不可见排序，而非按采购额。又难替代又看不清的供应商优先获得有预算的双语支持。",
+  "triage.rankby":"表格排序依据","triage.byspend":"采购额","triage.byrisk":"对 Merit 的风险",
+  "triage.topn":"高亮前 N 名",
+  "triage.readout":"采购额前 {n} 名中包含 {y} 家{t}供应商中的 {x} 家",
+  "triage.matrixttl":"风险矩阵","triage.tablettl":"供应商清册",
+  "triage.matrixhelp":"x = 不可见度，y = 不可替代度，圆点大小 = 年采购额。虚线为 3.5 高/低阈值。供应商在工作区上传证据后，圆点向左移动。",
+  "col.name":"供应商","col.country":"国家","col.cat":"品类","col.spend":"年采购额","col.rank":"采购额排名","col.irr":"不可替代","col.inv":"不可见","col.risk":"风险","col.treat":"处置","col.flag":"红旗",
+  "treat.support":"优先支持","treat.harvest":"采集数据","treat.shared":"共享支持","treat.light":"轻接触","treat.escalate":"立即升级",
+  "detail.irr":"不可替代性子因子","detail.inv":"不可见性子因子","detail.derived":"由工作区证据推算",
+  "f.alt":"合格备选供应商","f.requal":"重新认证时间","f.inv":"库存覆盖","f.clin":"下游器械临床关键性",
+  "f.evid":"证据状态","f.region":"区域披露法规成熟度","f.staff":"专职可持续人员","f.onsite":"最近一次现场核查",
+  "o.alt.none":"0（独家）","o.alt.one":"1","o.alt.multi":"2+",
+  "o.requal.gt9":">9 个月","o.requal.m6_9":"6–9 个月","o.requal.m3_6":"3–6 个月","o.requal.lt3":"<3 个月",
+  "o.inv.lt4":"<4 周","o.inv.w4_8":"4–8 周","o.inv.gt8":">8 周",
+  "o.clin.critical":"关键 / 介入","o.clin.procedural":"介入","o.clin.moderate":"中等","o.clin.low":"低",
+  "o.evid.none":"无","o.evid.self":"仅自报","o.evid.partial":"部分，Merit 已审","o.evid.third":"EcoVadis / 第三方",
+  "o.region.5":"墨西哥 / 中国 / 东南亚","o.region.3":"拉美 / 其他","o.region.1":"美国 / 欧盟 / 日本",
+  "o.staff.none":"无","o.staff.part":"兼职","o.staff.team":"团队",
+  "o.onsite.never":"从未","o.onsite.gt3":">3 年前","o.onsite.lt1":"<1 年内",
+  "redflag":"严重劳工 / 安全指控",
+  "ws.title":"供应商工作区——展示你已经在做的",
+  "ws.lede":"用工厂已有的文件。附上文件名即可（本原型不上传任何文件）。Merit 先审阅，再现场核实。",
+  "ws.pick":"供应商","ws.export":"导出证据包","ws.print":"可打印摘要","ws.prototype":"仅为原型",
+  "ws.readiness":"就绪度","ws.calc":"能耗与排放计算器","ws.support":"Merit 提供的支持","ws.commitments":"Merit 对你的承诺","ws.voice":"匿名员工声音",
+  "st.not_started":"未开始","st.uploaded":"已上传","st.reviewed":"Merit 已审阅","st.verified":"现场已核实",
+  "th.environment":"环境","th.labor":"劳工与人权","th.ethics":"商业道德","th.procurement":"可持续采购",
+  "ws.overall":"总体完成度","ws.gateopen":"已达 EcoVadis 条件——受邀参加完整评估","ws.gateclosed":"尚未达到 EcoVadis 条件",
+  "ws.gaterule":"当 ≥80% 条目达到「已上传」或更高，且无劳工条目处于「未开始」时开启。",
+  "ws.attach":"附上文件名","ws.file":"文件",
+  "ws.kwh":"年用电量（kWh）","ws.diesel":"柴油（升/年）","ws.gas":"天然气（m³/年）",
+  "ws.gridf":"电网因子（kgCO₂e/kWh）","ws.dieself":"柴油因子（kgCO₂e/L）","ws.gasf":"天然气因子（kgCO₂e/m³）",
+  "ws.factnote":"默认值，可编辑——请对照现行官方因子核实。",
+  "ws.totalco2":"全厂总排放","ws.revshare":"来自 Merit 的收入占比（%）","ws.attrib":"归属于 Merit 订单（范围 3 类别 1，供应商专属数据）",
+  "ws.eeiof":"基于采购额的 EEIO 因子（kgCO₂e/$）","ws.eeio":"基于采购额的估算（供对比）","ws.eeionote":"供应商专属数据（左）取代粗略的采购额估算（右）。",
+  "ws.hours":"双语工程师工时","ws.used":"已用","ws.remaining":"剩余",
+  "ws.fee":"EcoVadis 费用由 Merit 承担（第一年）","ws.finance":"提前付款资格（与可持续挂钩，银行出资）",
+  "ws.unlocked":"达标后解锁","ws.locked":"达标后开启","yes":"是",
+  "commit.1":"你的数据绝不会用于价格谈判。","commit.2":"不会因报告不成熟而淘汰任何供应商。","commit.3":"Merit 不会延长你的付款账期。",
+  "voice.intro":"扫码用你的语言匿名作答。原型占位。",
+  "voice.q1":"所有加班都足额发放了吗？","voice.q2":"你能毫无顾虑地提出问题吗？","voice.q3":"饮用水和防护用品是否始终可得？",
+  "cl.title":"声明台账——只说数据支持的话",
+  "cl.lede":"下方项目统计由分诊与工作区数据实时计算。声明生成器会拦截证据无法支撑的表述。",
+  "cl.builder":"声明生成器","cl.pick":"选择要检验的声明",
+  "cl.audience":"受众与节奏",
+  "cl.evtier":"证据等级","cl.coverage":"覆盖范围","cl.unknown":"仍未知的部分","cl.approved":"核准措辞",
+  "cl.tier.self":"自报","cl.tier.reviewed":"Merit 已审","cl.tier.third":"独立核验","cl.tier.mixed":"混合",
+  "st.allowed":"允许","st.qualifier":"需加限定后允许","st.blocked":"禁止",
+  "stat.bytreat":"各处置类别供应商数","stat.supportrev":"已审证据的优先支持供应商","stat.spendcov":"EcoVadis/同等覆盖的采购额","stat.critcov":"已覆盖的关键供应商","stat.s3":"来自供应商专属数据的范围3类别1",
+  "aud.header":["受众","Merit 分享的内容","节奏"],
+  "aud.rows":[
+   ["董事会","按风险分层的供应商地图、达标进度、被拦截声明记录","每季度"],
+   ["医院客户","仅经核验、含周期与证据等级的覆盖数据","按需 / 每年"],
+   ["投资者","范围3类别1方法、专属数据占比与估算对比、暂无减排声明","年度报告"],
+   ["员工","项目进展、第一波支持故事","每月"],
+   ["供应商","自身就绪度、支持工时、融资资格","工作区内持续更新"]
+  ]
+ }
+};
+
+/* ---------------- factor maps ---------------- */
+const SCORE = {
+  alt:{none:5,one:3,multi:1},
+  requal:{gt9:5,m6_9:4,m3_6:2,lt3:1},
+  inv:{lt4:5,w4_8:3,gt8:1},
+  clin:{critical:5,procedural:5,moderate:3,low:1},
+  evid:{none:5,self:4,partial:3,third:1},
+  staff:{none:5,part:3,team:1},
+  onsite:{never:5,gt3:3,lt1:1}
+};
+const OPT = {
+  alt:["none","one","multi"],
+  requal:["gt9","m6_9","m3_6","lt3"],
+  inv:["lt4","w4_8","gt8"],
+  clin:["critical","procedural","moderate","low"],
+  evid:["none","self","partial","third"],
+  staff:["none","part","team"],
+  onsite:["never","gt3","lt1"]
+};
+function regionScore(country){
+  if(["MX","CN","MY"].includes(country)) return 5;
+  if(["CR","BR","IN","TH"].includes(country)) return 3;
+  return 1; // US, IE, DE, JP
+}
+
+/* ---------------- seed suppliers (~24, fictional) ---------------- */
+function seedSuppliers(){
+  // ws: workspace id if any
+  const S=(id,name,country,cat,spend,alt,requal,inv,clin,evid,staff,onsite,red,ws)=>(
+    {id,name,country,cat,spend,
+     irr:{alt,requal,inv,clin},
+     vis:{evid,staff,onsite}, redFlag:!!red, ws:ws||null});
+  return [
+    S("s1","Moldeados Precisos del Noroeste","MX","precision-molded hubs",1.9e6,"none","gt9","lt4","critical","none","none","never",false,"wsMX"),
+    S("s2","东莞精工导管","CN","guidewire core",2.4e6,"none","gt9","lt4","critical","none","none","never",false,"wsCN"),
+    S("s3","Recubrimientos Hidro Baja","MX","hydrophilic coating",1.1e6,"none","m6_9","lt4","critical","none","none","gt3",false),
+    S("s4","Shenzhen PTFE Linings","CN","PTFE liner",1.6e6,"one","m6_9","w4_8","procedural","self","part","gt3",false),
+    S("s5","Tijuana Hypotube Works","MX","stainless hypotube",2.1e6,"none","gt9","lt4","critical","none","none","never",true),
+    S("s6","Jiangsu Catheter Shafts","CN","precision-molded hubs",1.3e6,"one","m6_9","w4_8","moderate","self","none","gt3",false),
+    S("s7","Costa Verde Sterile Pack","CR","sterile packaging",0.9e6,"one","m3_6","w4_8","moderate","self","part","gt3",false),
+    S("s8","Guadalajara Resin Supply","MX","resin distributor",0.7e6,"multi","lt3","gt8","low","self","none","gt3",false),
+    S("s9","Ningbo Coating Systems","CN","hydrophilic coating",1.0e6,"none","m6_9","lt4","procedural","none","none","never",false),
+    S("s10","Baja Guidewire Core Co.","MX","guidewire core",1.2e6,"none","gt9","w4_8","critical","self","none","gt3",false),
+    S("s11","Anchor Polymers USA","US","resin distributor",9.8e6,"multi","lt3","gt8","low","third","team","lt1",false),
+    S("s12","Midwest Corrugate Inc.","US","corrugate",4.2e6,"multi","lt3","gt8","low","third","team","lt1",false),
+    S("s13","Shannon Medical Films","IE","sterile packaging",7.5e6,"one","m3_6","w4_8","moderate","third","team","lt1",false),
+    S("s14","Rhein Präzision GmbH","DE","stainless hypotube",6.3e6,"one","m6_9","w4_8","procedural","third","team","lt1",false),
+    S("s15","Osaka Fine Wire","JP","guidewire core",5.1e6,"one","m6_9","w4_8","procedural","third","team","lt1",false),
+    S("s16","Pacific Resin Trading","US","resin distributor",8.1e6,"multi","lt3","gt8","low","third","team","lt1",false),
+    S("s17","Lone Star Packaging","US","sterile packaging",3.4e6,"multi","m3_6","gt8","moderate","partial","part","gt3",false),
+    S("s18","Dresden Hub Molding","DE","precision-molded hubs",4.9e6,"one","m6_9","w4_8","moderate","third","team","lt1",false),
+    S("s19","Penang Precision Molding","MY","precision-molded hubs",0.8e6,"one","m6_9","lt4","moderate","none","none","never",false),
+    S("s20","Monterrey Corrugate SA","MX","corrugate",0.6e6,"multi","lt3","gt8","low","self","none","gt3",false),
+    S("s21","Suzhou Overmould Tech","CN","PTFE liner",1.4e6,"none","gt9","lt4","procedural","none","part","gt3",true),
+    S("s22","Jalisco Hypotube MX","MX","stainless hypotube",1.0e6,"one","m6_9","w4_8","procedural","self","none","gt3",false),
+    S("s23","Great Lakes Films","US","PTFE liner",3.9e6,"multi","m3_6","gt8","low","third","team","lt1",false),
+    S("s24","Hangzhou Grievance-Flagged Co.","CN","hydrophilic coating",0.9e6,"none","m6_9","lt4","procedural","self","none","never",true)
+  ];
+}
+
+/* ---------------- workspace evidence templates ---------------- */
+const EV_ITEMS = {
+  environment:[
+    {id:"e_elec",label:{en:"Electricity bills, 12 months",es:"Recibos de electricidad, 12 meses",zh:"12 个月电费单"},why:{en:"Shows energy use; feeds the emissions calculator.",es:"Muestra el uso de energía; alimenta la calculadora.",zh:"反映能耗，供排放计算器使用。"}},
+    {id:"e_fuel",label:{en:"Gas / diesel invoices",es:"Facturas de gas / diésel",zh:"燃气/柴油发票"},why:{en:"Fuel burned on site = direct emissions.",es:"Combustible quemado = emisiones directas.",zh:"现场燃料=直接排放。"}},
+    {id:"e_water",label:{en:"Water bills",es:"Recibos de agua",zh:"水费单"},why:{en:"Basic resource-use evidence.",es:"Evidencia básica de uso de recursos.",zh:"基本资源使用证据。"}},
+    {id:"e_waste",label:{en:"Waste manifests",es:"Manifiestos de residuos",zh:"废弃物清单"},why:{en:"How waste is handled and disposed.",es:"Cómo se gestiona el residuo.",zh:"废弃物如何处理处置。"}},
+    {id:"e_iso",label:{en:"ISO 14001 certificate (if any)",es:"Certificado ISO 14001 (si lo hay)",zh:"ISO 14001 证书（若有）"},why:{en:"Third-party environmental management proof.",es:"Prueba externa de gestión ambiental.",zh:"第三方环境管理证明。"}}
+  ],
+  labor:[
+    {id:"l_pay",label:{en:"Payroll & working-hours records",es:"Nómina y registros de horas",zh:"工资与工时记录"},why:{en:"Confirms wages and legal hours.",es:"Confirma salarios y horas legales.",zh:"确认薪资与合法工时。"}},
+    {id:"l_ot",label:{en:"Overtime log",es:"Registro de horas extra",zh:"加班记录"},why:{en:"Shows overtime is tracked and paid.",es:"Muestra que el extra se registra y paga.",zh:"证明加班被记录并支付。"}},
+    {id:"l_safety",label:{en:"Health & safety incident log",es:"Registro de incidentes de seguridad",zh:"安全事故记录"},why:{en:"Evidence of a safe workplace.",es:"Evidencia de un lugar seguro.",zh:"安全工作场所的证据。"}},
+    {id:"l_contract",label:{en:"Worker contract template",es:"Plantilla de contrato laboral",zh:"员工合同模板"},why:{en:"Shows terms workers agree to.",es:"Muestra los términos acordados.",zh:"展示员工同意的条款。"}},
+    {id:"l_griev",label:{en:"Grievance channel description",es:"Canal de quejas",zh:"申诉渠道说明"},why:{en:"Workers can raise concerns safely.",es:"Los trabajadores pueden quejarse sin miedo.",zh:"员工可安全地提出问题。"}}
+  ],
+  ethics:[
+    {id:"et_bribe",label:{en:"Anti-bribery statement",es:"Declaración anticorrupción",zh:"反贿赂声明"},why:{en:"Clear stance against corruption.",es:"Postura clara contra la corrupción.",zh:"明确反腐立场。"}},
+    {id:"et_code",label:{en:"Supplier code acknowledgment",es:"Acuse del código de proveedor",zh:"供应商行为准则确认"},why:{en:"Signed agreement to Merit's standards.",es:"Acuerdo firmado con los estándares de Merit.",zh:"签署同意 Merit 标准。"}},
+    {id:"et_conflict",label:{en:"Conflict-of-interest policy",es:"Política de conflicto de interés",zh:"利益冲突政策"},why:{en:"How conflicts are handled.",es:"Cómo se gestionan los conflictos.",zh:"如何处理利益冲突。"}},
+    {id:"et_data",label:{en:"Data / IP protection note",es:"Nota de protección de datos / PI",zh:"数据/知识产权保护说明"},why:{en:"Protects Merit's designs.",es:"Protege los diseños de Merit.",zh:"保护 Merit 的设计。"}}
+  ],
+  procurement:[
+    {id:"p_subs",label:{en:"Sub-supplier list",es:"Lista de subproveedores",zh:"次级供应商名单"},why:{en:"Shows who supplies you.",es:"Muestra quién le abastece.",zh:"展示你的上游供应商。"}},
+    {id:"p_code",label:{en:"Sub-supplier code sign-off",es:"Firma del código por subproveedores",zh:"次级供应商准则签署"},why:{en:"Standards flow down your chain.",es:"Los estándares bajan por la cadena.",zh:"标准向下游传导。"}},
+    {id:"p_conflict",label:{en:"Conflict-minerals / sourcing note",es:"Nota de minerales en conflicto",zh:"冲突矿产/采购说明"},why:{en:"Where key materials come from.",es:"De dónde vienen los materiales clave.",zh:"关键材料来源。"}},
+    {id:"p_local",label:{en:"Local sourcing summary",es:"Resumen de abastecimiento local",zh:"本地采购概要"},why:{en:"Shorter chains, lower risk.",es:"Cadenas más cortas, menos riesgo.",zh:"更短链条、更低风险。"}}
+  ]
+};
+const THEME_ORDER=["environment","labor","ethics","procurement"];
+const STATUSES=["not_started","uploaded","reviewed","verified"];
+
+function seedWorkspace(country, revShare, hoursUsed, preset){
+  const grid = country==="CN"?0.570:0.438;
+  const items={};
+  THEME_ORDER.forEach(th=>EV_ITEMS[th].forEach((it,idx)=>{
+    // give each workspace a starting progress profile
+    let st="not_started";
+    if(preset==="mx"){ st = ["reviewed","uploaded","uploaded","not_started","not_started"][idx%5]; if(th==="labor") st=["reviewed","uploaded","uploaded","uploaded","uploaded"][idx%5]; }
+    if(preset==="cn"){ st = ["uploaded","not_started","not_started","not_started","not_started"][idx%5]; }
+    items[it.id]={status:st, file:""};
+  }));
+  return {items, energy:{kwh:country==="CN"?840000:520000, diesel:12000, gas:38000, gridf:grid, dieself:2.68, gasf:1.89, revShare, eeiof:0.35}, hours:{budget:40, used:hoursUsed}, feeCovered:true};
+}
+
+/* ---------------- claim templates ---------------- */
+const CLAIMS = [
+ {id:"crit_reviewed", label:{en:"X% of our critical suppliers have reviewed sustainability evidence",es:"X% de nuestros proveedores críticos tienen evidencia revisada",zh:"X% 的关键供应商已有经审阅的可持续证据"}, kind:"coverage_crit"},
+ {id:"spend_ev", label:{en:"Y% of spend is covered by EcoVadis assessments",es:"Y% del gasto está cubierto por evaluaciones EcoVadis",zh:"Y% 的采购额已被 EcoVadis 评估覆盖"}, kind:"coverage_spend"},
+ {id:"sustainable", label:{en:"Our supply chain is sustainable",es:"Nuestra cadena de suministro es sostenible",zh:"我们的供应链是可持续的"}, kind:"vague"},
+ {id:"climate_neutral", label:{en:"Our products are climate neutral",es:"Nuestros productos son climáticamente neutros",zh:"我们的产品是气候中和的"}, kind:"neutral"},
+ {id:"reduced", label:{en:"We reduced supplier emissions by X%",es:"Redujimos las emisiones de proveedores en X%",zh:"我们将供应商排放降低了 X%"}, kind:"reduction"}
+];
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let state;
+function freshState(){
+  return {
+    lang:"en",
+    rankMode:"risk",
+    topN:8,
+    suppliers:seedSuppliers(),
+    workspaces:{ wsMX:seedWorkspace("MX",0.42,14,"mx"), wsCN:seedWorkspace("CN",0.30,4,"cn") },
+    wsCurrent:"wsMX",
+    claimCurrent:"crit_reviewed"
+  };
+}
+function load(){
+  try{ const r=localStorage.getItem(LS_KEY); if(r){state=JSON.parse(r); if(!state.suppliers) throw 0; return;} }catch(e){}
+  state=freshState(); save();
+}
+function save(){ try{localStorage.setItem(LS_KEY, JSON.stringify(state));}catch(e){} }
+
+/* ---------------- helpers ---------------- */
+function t(key){ const d=I18N[state.lang]; return (d && d[key]!==undefined)?d[key]:(I18N.en[key]!==undefined?I18N.en[key]:key); }
+const avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
+
+function wsEvidenceScore(wsId){
+  // derive the "evidence status" invisibility sub-factor from workspace progress
+  const ws=state.workspaces[wsId]; if(!ws) return null;
+  const vals=Object.values(ws.items).map(i=>i.status);
+  const n=vals.length;
+  const upOrBetter=vals.filter(s=>s!=="not_started").length;
+  const reviewed=vals.filter(s=>s==="reviewed"||s==="verified").length;
+  const verified=vals.filter(s=>s==="verified").length;
+  if(upOrBetter===0) return 5;                    // none
+  if(verified>=Math.ceil(0.8*n)) return 1;        // third-party equivalent
+  if(reviewed>=Math.ceil(0.5*n)) return 2;        // partial reviewed -> nearly visible
+  if(reviewed>0) return 3;                        // some reviewed
+  return 4;                                        // uploaded but self-reported only
+}
+
+function irrScore(s){ return avg([SCORE.alt[s.irr.alt],SCORE.requal[s.irr.requal],SCORE.inv[s.irr.inv],SCORE.clin[s.irr.clin]]); }
+function visScore(s){
+  const evid = s.ws ? wsEvidenceScore(s.ws) : SCORE.evid[s.vis.evid];
+  return avg([evid, regionScore(s.country), SCORE.staff[s.vis.staff], SCORE.onsite[s.vis.onsite]]);
+}
+function treatmentOf(s){
+  if(s.redFlag) return "escalate";
+  const I=irrScore(s), V=visScore(s);
+  const hiI=I>=3.5, hiV=V>=3.5;
+  if(hiI&&hiV) return "support";
+  if(hiI&&!hiV) return "harvest";
+  if(!hiI&&hiV) return "shared";
+  return "light";
+}
+function fmtMoney(v){ return "$"+(v/1e6).toFixed(1)+"M"; }
+
+/* ============================================================
+   RENDER — chrome / tabs / language
+   ============================================================ */
+function applyStaticText(){
+  document.documentElement.lang = state.lang==="zh"?"zh":state.lang;
+  document.querySelectorAll("[data-i]").forEach(el=>{ el.textContent=t(el.getAttribute("data-i")); });
+  document.getElementById("resetBtn").textContent=t("reset");
+  document.getElementById("tab-triage").textContent=t("tab.triage");
+  document.getElementById("tab-workspace").textContent=t("tab.workspace");
+  document.getElementById("tab-claims").textContent=t("tab.claims");
+  document.querySelectorAll(".langsw button").forEach(b=>b.setAttribute("aria-pressed", b.dataset.lang===state.lang));
+}
+
+/* ---------------- TRIAGE ---------------- */
+function rowsSorted(){
+  const rows=state.suppliers.map(s=>({s, I:irrScore(s), V:visScore(s), risk:irrScore(s)*visScore(s)}));
+  // spend rank (always by spend desc)
+  const byspend=[...rows].sort((a,b)=>b.s.spend-a.s.spend);
+  byspend.forEach((r,i)=>r.spendRank=i+1);
+  if(state.rankMode==="spend") rows.sort((a,b)=>b.s.spend-a.s.spend);
+  else rows.sort((a,b)=>b.risk-a.risk);
+  return rows;
+}
+function topNids(){
+  const rows=state.suppliers.map(s=>({s}));
+  const key = state.rankMode==="spend" ? (r=>r.s.spend) : (r=>irrScore(r.s)*visScore(r.s));
+  rows.sort((a,b)=>key(b)-key(a));
+  return new Set(rows.slice(0,state.topN).map(r=>r.s.id));
+}
+
+function renderTriage(){
+  // controls
+  document.getElementById("rankSpend").setAttribute("aria-pressed", state.rankMode==="spend");
+  document.getElementById("rankRisk").setAttribute("aria-pressed", state.rankMode==="risk");
+  document.getElementById("topN").value=state.topN;
+  document.getElementById("topNval").textContent=state.topN;
+
+  const rows=rowsSorted();
+  const top=topNids();
+  // readout: top N by spend includes X of Y support-first
+  const supportIds=state.suppliers.filter(s=>treatmentOf(s)==="support").map(s=>s.id);
+  const bySpend=[...state.suppliers].sort((a,b)=>b.spend-a.spend).slice(0,state.topN).map(s=>s.id);
+  const inc=supportIds.filter(id=>bySpend.includes(id)).length;
+  const ro=document.getElementById("readout");
+  ro.innerHTML = t("triage.readout").replace("{n}",`<b>${state.topN}</b>`).replace("{x}",`<b>${inc}</b>`).replace("{y}",`<b>${supportIds.length}</b>`).replace("{t}",t("treat.support"));
+
+  // table
+  const head=document.getElementById("supHead");
+  head.innerHTML="<tr>"+["col.name","col.country","col.cat","col.spend","col.rank","col.irr","col.inv","col.risk","col.treat"].map(k=>`<th>${t(k)}</th>`).join("")+"</tr>";
+  const body=document.getElementById("supBody"); body.innerHTML="";
+  rows.forEach(r=>{
+    const tr=document.createElement("tr");
+    if(top.has(r.s.id)) tr.className="topn";
+    const tr_treat=treatmentOf(r.s);
+    tr.innerHTML=`<td>${r.s.name}${r.s.redFlag?' <span title="red flag">⚑</span>':''}</td>`+
+      `<td>${r.s.country}</td><td>${r.s.cat}</td>`+
+      `<td class="num">${fmtMoney(r.s.spend)}</td><td class="num">#${r.spendRank}</td>`+
+      `<td class="num">${r.I.toFixed(1)}</td><td class="num">${r.V.toFixed(1)}</td>`+
+      `<td class="num">${r.risk.toFixed(1)}</td>`+
+      `<td><span class="treat ${tr_treat}">${t("treat."+tr_treat)}</span></td>`;
+    tr.addEventListener("click",()=>openDetail(r.s.id));
+    body.appendChild(tr);
+  });
+  document.getElementById("rowcount").textContent=rows.length+" rows";
+
+  renderMatrix(top);
+}
+
+function renderMatrix(top){
+  const W=560,H=520,pad=56;
+  const sx=v=>pad+((v-0.5)/(5.5-0.5))*(W-pad-20);   // invisibility x
+  const sy=v=>H-pad-((v-0.5)/(5.5-0.5))*(H-pad-20);  // irreplaceability y
+  const thr=3.5;
+  const maxSpend=Math.max(...state.suppliers.map(s=>s.spend));
+  const rad=sp=>6+Math.sqrt(sp/maxSpend)*22;
+  const col={support:"#D9480F",harvest:"#2563C9",shared:"#D6A20A",light:"#16A085",escalate:"#8B1E1E"};
+  let dots="";
+  state.suppliers.forEach(s=>{
+    const I=irrScore(s),V=visScore(s),tr=treatmentOf(s);
+    dots+=`<circle class="dot" data-id="${s.id}" cx="${sx(V).toFixed(1)}" cy="${sy(I).toFixed(1)}" r="${rad(s.spend).toFixed(1)}" fill="${col[tr]}" fill-opacity="0.72" stroke="#13243A" stroke-width="1">`+
+      `<title>${s.name} — I ${I.toFixed(1)}, V ${V.toFixed(1)}, ${fmtMoney(s.spend)}</title></circle>`;
+    if(top.has(s.id)) dots+=`<circle cx="${sx(V).toFixed(1)}" cy="${sy(I).toFixed(1)}" r="${(rad(s.spend)+4).toFixed(1)}" fill="none" stroke="#E8A317" stroke-width="2" pointer-events="none"/>`;
+  });
+  // quadrant labels
+  const qlab=(x,y,txt,anchor)=>`<text x="${x}" y="${y}" font-size="13" font-weight="700" fill="#6B7A8C" text-anchor="${anchor}">${txt}</text>`;
+  const svg=`<svg class="matrix" viewBox="0 0 ${W} ${H}" role="img" aria-label="Risk matrix">
+    <rect x="${pad}" y="20" width="${W-pad-20}" height="${H-pad-20}" fill="#FBFDFF" stroke="#C9D3DD"/>
+    <line x1="${sx(thr)}" y1="20" x2="${sx(thr)}" y2="${H-pad}" stroke="#C9D3DD" stroke-dasharray="5 4"/>
+    <line x1="${pad}" y1="${sy(thr)}" x2="${W-20}" y2="${sy(thr)}" stroke="#C9D3DD" stroke-dasharray="5 4"/>
+    ${qlab(W-26,sy(4.9),t("treat.support"),"end")}
+    ${qlab(pad+6,sy(4.9),t("treat.harvest"),"start")}
+    ${qlab(W-26,H-pad-6,t("treat.shared"),"end")}
+    ${qlab(pad+6,H-pad-6,t("treat.light"),"start")}
+    <text x="${W/2}" y="${H-16}" font-size="13" font-weight="700" fill="#13243A" text-anchor="middle">${t("col.inv")} →</text>
+    <text x="16" y="${H/2}" font-size="13" font-weight="700" fill="#13243A" text-anchor="middle" transform="rotate(-90 16 ${H/2})">${t("col.irr")} →</text>
+    ${dots}
+  </svg>`;
+  document.getElementById("matrixWrap").innerHTML=svg;
+  document.querySelectorAll("svg .dot").forEach(c=>c.addEventListener("click",()=>openDetail(c.dataset.id)));
+}
+
+function dropdown(group, val, onchange){
+  const sel=document.createElement("select");
+  OPT[group].forEach(o=>{
+    const opt=document.createElement("option"); opt.value=o; opt.textContent=t("o."+group+"."+o);
+    if(o===val) opt.selected=true; sel.appendChild(opt);
+  });
+  sel.addEventListener("change",()=>onchange(sel.value));
+  return sel;
+}
+function openDetail(id){
+  const s=state.suppliers.find(x=>x.id===id); if(!s)return;
+  const p=document.getElementById("detailPanel"); p.style.display="block";
+  document.getElementById("detailTtl").textContent=s.name;
+  document.getElementById("detailMeta").textContent=`${s.country} · ${s.cat} · ${fmtMoney(s.spend)} · RISK ${(irrScore(s)*visScore(s)).toFixed(1)}`;
+  const body=document.getElementById("detailBody"); body.innerHTML="";
+
+  // IRR col
+  const c1=document.createElement("div");
+  c1.innerHTML=`<h3>${t("detail.irr")} — ${irrScore(s).toFixed(1)}</h3>`;
+  [["alt","f.alt","alt"],["requal","f.requal","requal"],["inv","f.inv","inv"],["clin","f.clin","clin"]].forEach(([k,lbl,grp])=>{
+    const row=document.createElement("div"); row.className="kv"; row.style.marginBottom="6px";
+    const lab=document.createElement("div"); lab.className="k"; lab.textContent=t(lbl);
+    const d=dropdown(grp, s.irr[k], v=>{ s.irr[k]=v; save(); renderTriage(); openDetail(id); });
+    row.appendChild(lab); row.appendChild(d); c1.appendChild(row);
+  });
+  // red flag
+  const rf=document.createElement("label"); rf.style.display="flex"; rf.style.gap="8px"; rf.style.marginTop="10px"; rf.style.fontWeight="700"; rf.style.color="#C0392B";
+  const cb=document.createElement("input"); cb.type="checkbox"; cb.checked=s.redFlag;
+  cb.addEventListener("change",()=>{ s.redFlag=cb.checked; save(); renderTriage(); openDetail(id); });
+  rf.appendChild(cb); rf.appendChild(document.createTextNode(t("redflag"))); c1.appendChild(rf);
+
+  // VIS col
+  const c2=document.createElement("div");
+  c2.innerHTML=`<h3>${t("detail.inv")} — ${visScore(s).toFixed(1)}</h3>`;
+  // evidence status
+  const er=document.createElement("div"); er.className="kv"; er.style.marginBottom="6px";
+  const el=document.createElement("div"); el.className="k"; el.textContent=t("f.evid");
+  if(s.ws){
+    const v=document.createElement("div"); v.className="v"; v.innerHTML=`${wsEvidenceScore(s.ws).toFixed(1)}<br><span class="note">${t("detail.derived")}</span>`;
+    er.appendChild(el); er.appendChild(v);
+  } else {
+    const d=dropdown("evid", s.vis.evid, v=>{ s.vis.evid=v; save(); renderTriage(); openDetail(id); });
+    er.appendChild(el); er.appendChild(d);
+  }
+  c2.appendChild(er);
+  // region (derived)
+  const rr=document.createElement("div"); rr.className="kv"; rr.style.marginBottom="6px";
+  rr.innerHTML=`<div class="k">${t("f.region")}</div><div class="v">${regionScore(s.country).toFixed(1)} <span class="note">(${s.country})</span></div>`;
+  c2.appendChild(rr);
+  [["staff","f.staff","staff"],["onsite","f.onsite","onsite"]].forEach(([k,lbl,grp])=>{
+    const row=document.createElement("div"); row.className="kv"; row.style.marginBottom="6px";
+    const lab=document.createElement("div"); lab.className="k"; lab.textContent=t(lbl);
+    const d=dropdown(grp, s.vis[k], v=>{ s.vis[k]=v; save(); renderTriage(); openDetail(id); });
+    row.appendChild(lab); row.appendChild(d); c2.appendChild(row);
+  });
+
+  body.appendChild(c1); body.appendChild(c2);
+}
+
+/* ---------------- WORKSPACE ---------------- */
+function wsSupplier(){ return state.suppliers.find(s=>s.ws===state.wsCurrent); }
+function statusClass(st){ return {not_started:"ns",uploaded:"up",reviewed:"rv",verified:"vf"}[st]; }
+
+function renderWorkspace(){
+  // selector
+  const sel=document.getElementById("wsSel"); sel.innerHTML="";
+  state.suppliers.filter(s=>s.ws).forEach(s=>{
+    const o=document.createElement("option"); o.value=s.ws; o.textContent=`${s.name} (${s.country})`;
+    if(s.ws===state.wsCurrent)o.selected=true; sel.appendChild(o);
+  });
+  const sup=wsSupplier(); const ws=state.workspaces[state.wsCurrent];
+
+  // themes + items
+  const box=document.getElementById("themes"); box.innerHTML="";
+  THEME_ORDER.forEach(th=>{
+    const items=EV_ITEMS[th];
+    const done=items.filter(it=>ws.items[it.id].status!=="not_started").length;
+    const wrap=document.createElement("div"); wrap.className="theme";
+    wrap.innerHTML=`<h3>${t("th."+th)} <span class="note">${done}/${items.length}</span></h3>`;
+    items.forEach(it=>{
+      const cur=ws.items[it.id];
+      const ev=document.createElement("div"); ev.className="ev";
+      const why=document.createElement("div"); why.className="why";
+      why.innerHTML=`<b>${it.label[state.lang]}</b><br>${it.why[state.lang]}`;
+      const ctr=document.createElement("div"); ctr.className="ctrls";
+      // status select styled as tag
+      const chip=document.createElement("span"); chip.className="tag "+statusClass(cur.status); chip.textContent=t("st."+cur.status);
+      const stsel=document.createElement("select");
+      STATUSES.forEach(s=>{const o=document.createElement("option");o.value=s;o.textContent=t("st."+s);if(s===cur.status)o.selected=true;stsel.appendChild(o);});
+      stsel.addEventListener("change",()=>{cur.status=stsel.value; save(); renderWorkspace(); });
+      const file=document.createElement("input"); file.type="file"; file.style.maxWidth="150px"; file.setAttribute("aria-label",t("ws.attach"));
+      file.addEventListener("change",()=>{ cur.file=file.files[0]?file.files[0].name:""; if(cur.status==="not_started"&&cur.file){cur.status="uploaded";} save(); renderWorkspace(); });
+      ctr.appendChild(chip); ctr.appendChild(stsel); ctr.appendChild(file);
+      ev.appendChild(why); ev.appendChild(ctr);
+      if(cur.file){ const fn=document.createElement("div"); fn.className="fname"; fn.textContent="📎 "+cur.file; ev.appendChild(fn); }
+      wrap.appendChild(ev);
+    });
+    box.appendChild(wrap);
+  });
+
+  renderReadiness(ws);
+  renderCalc(ws, sup);
+  renderSupport(ws);
+  renderCommit();
+  renderVoice();
+}
+
+function themePct(ws,th){ const items=EV_ITEMS[th]; const up=items.filter(it=>ws.items[it.id].status!=="not_started").length; return up/items.length; }
+function overallPct(ws){ const all=Object.values(ws.items); return all.filter(i=>i.status!=="not_started").length/all.length; }
+function gateOpen(ws){
+  const overall=overallPct(ws);
+  const laborOk=EV_ITEMS.labor.every(it=>ws.items[it.id].status!=="not_started");
+  return overall>=0.8 && laborOk;
+}
+function renderReadiness(ws){
+  const box=document.getElementById("readinessBox");
+  let html="";
+  THEME_ORDER.forEach(th=>{
+    const pct=Math.round(themePct(ws,th)*100);
+    html+=`<div style="margin-bottom:8px"><div class="kv"><span class="k">${t("th."+th)}</span><span class="v">${pct}%</span></div><div class="meter"><span style="width:${pct}%"></span></div></div>`;
+  });
+  const op=Math.round(overallPct(ws)*100);
+  html+=`<div style="margin:12px 0 8px"><div class="kv"><span class="k"><b>${t("ws.overall")}</b></span><span class="v">${op}%</span></div><div class="meter"><span style="width:${op}%;background:#2563C9"></span></div></div>`;
+  const open=gateOpen(ws);
+  html+=`<div class="gate ${open?'open':'closed'}">${open?t("ws.gateopen"):t("ws.gateclosed")}</div>`;
+  html+=`<p class="note">${t("ws.gaterule")}</p>`;
+  box.innerHTML=html;
+}
+
+function renderCalc(ws, sup){
+  const e=ws.energy;
+  const siteCo2 = (e.kwh*e.gridf + e.diesel*e.dieself + e.gas*e.gasf)/1000; // tCO2e
+  const attrib = siteCo2 * e.revShare;
+  const spendEstimate = (sup.spend * e.eeiof)/1000; // tCO2e
+  const num=(lbl,val,step,min)=>`<div class="kv" style="margin-bottom:6px"><label class="k">${lbl}</label><input type="number" data-f="${val}" value="${e[val]}" step="${step}" min="${min||0}" style="width:120px"></div>`;
+  document.getElementById("calcBox").innerHTML=
+    num(t("ws.kwh"),"kwh",1000)+num(t("ws.diesel"),"diesel",100)+num(t("ws.gas"),"gas",100)+
+    `<hr style="border:none;border-top:1px solid #E4EAF0;margin:8px 0">`+
+    num(t("ws.gridf"),"gridf",0.001)+num(t("ws.dieself"),"dieself",0.01)+num(t("ws.gasf"),"gasf",0.01)+
+    `<p class="note">${t("ws.factnote")}</p>`+
+    `<div class="kv" style="margin:6px 0"><span class="k"><b>${t("ws.totalco2")}</b></span><span class="v">${siteCo2.toFixed(1)} tCO₂e</span></div>`+
+    num(t("ws.revshare"),"revShare",0.01)+
+    `<div class="cols2" style="margin-top:10px">
+       <div class="statcard"><div class="lbl">${t("ws.attrib")}</div><div class="statbig">${attrib.toFixed(1)}</div><div class="note">tCO₂e</div></div>
+       <div class="statcard" style="background:#F1F4F7"><div class="lbl">${t("ws.eeio")}</div><div class="statbig" style="color:#6B7A8C">${spendEstimate.toFixed(1)}</div><div class="note">tCO₂e — ${t("ws.eeiof")}</div>${num(t("ws.eeiof"),"eeiof",0.01)}</div>
+     </div>
+     <p class="note">${t("ws.eeionote")}</p>`;
+  document.querySelectorAll('#calcBox input[data-f]').forEach(inp=>{
+    inp.addEventListener("input",()=>{ let v=parseFloat(inp.value); if(isNaN(v))v=0; e[inp.dataset.f]=v; save();
+      // revShare bounded
+      if(inp.dataset.f==="revShare"&&v>1){e.revShare=v/100;} renderCalc(ws,sup); });
+  });
+}
+
+function renderSupport(ws){
+  const open=gateOpen(ws);
+  const rem=ws.hours.budget-ws.hours.used;
+  document.getElementById("supportBox").innerHTML=
+    `<div class="kv" style="margin-bottom:6px"><span class="k">${t("ws.hours")}</span><span class="v">${ws.hours.used} ${t("ws.used")} / ${rem} ${t("ws.remaining")}</span></div>
+     <div class="meter" style="margin-bottom:10px"><span style="width:${Math.round(ws.hours.used/ws.hours.budget*100)}%;background:#E8A317"></span></div>
+     <div class="kv" style="margin-bottom:6px"><span class="k">${t("ws.fee")}</span><span class="v" style="color:#2E8B57">${t("yes")}</span></div>
+     <div class="kv"><span class="k">${t("ws.finance")}</span><span class="v" style="color:${open?'#2E8B57':'#6B7A8C'}">${open?t("ws.unlocked"):t("ws.locked")}</span></div>`;
+}
+function renderCommit(){
+  document.getElementById("commitBox").innerHTML=
+    `<div class="commit">${t("commit.1")}</div><div class="commit">${t("commit.2")}</div><div class="commit">${t("commit.3")}</div>`;
+}
+function renderVoice(){
+  document.getElementById("voiceBox").innerHTML=
+    `<div style="display:flex;gap:14px;align-items:flex-start"><div class="qr">QR</div>
+     <div><p class="note">${t("voice.intro")}</p><ul style="margin:4px 0;padding-left:18px">
+     <li>${t("voice.q1")}</li><li>${t("voice.q2")}</li><li>${t("voice.q3")}</li></ul></div></div>`;
+}
+
+function exportPack(){
+  const sup=wsSupplier(); const ws=state.workspaces[state.wsCurrent];
+  const e=ws.energy;
+  const siteCo2=(e.kwh*e.gridf+e.diesel*e.dieself+e.gas*e.gasf)/1000;
+  const register={
+    generated:new Date().toISOString(),
+    note:"Illustrative data — Merit Supplier Bridge prototype. No files are uploaded.",
+    supplier:{name:sup.name,country:sup.country,category:sup.cat},
+    readiness:{overallPct:Math.round(overallPct(ws)*100), ecoVadisReady:gateOpen(ws)},
+    evidence:Object.entries(ws.items).map(([id,v])=>({item:id,status:v.status,file:v.file||null})),
+    emissions:{siteTCO2e:+siteCo2.toFixed(2), revShare:e.revShare, attributableTCO2e:+(siteCo2*e.revShare).toFixed(2), spendEstimateTCO2e:+((sup.spend*e.eeiof)/1000).toFixed(2)}
+  };
+  const blob=new Blob([JSON.stringify(register,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="evidence-pack-"+state.wsCurrent+".json"; a.click(); URL.revokeObjectURL(a.href);
+}
+function printSummary(){
+  const sup=wsSupplier(); const ws=state.workspaces[state.wsCurrent];
+  const rows=Object.entries(ws.items).map(([id,v])=>`<tr><td>${id}</td><td>${t("st."+v.status)}</td><td>${v.file||"—"}</td></tr>`).join("");
+  const w=window.open("","_blank");
+  w.document.write(`<html><head><title>${sup.name} — evidence</title><style>body{font-family:sans-serif;padding:24px;color:#13243A}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:6px;text-align:left}</style></head>
+   <body><h1>${sup.name}</h1><p>${sup.country} · ${sup.cat} · Readiness ${Math.round(overallPct(ws)*100)}% · ${t("illus")}</p>
+   <table><thead><tr><th>Item</th><th>Status</th><th>File</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
+  w.document.close(); w.print();
+}
+
+/* ---------------- CLAIMS ---------------- */
+function programStats(){
+  const sup=state.suppliers;
+  const treat={support:0,harvest:0,shared:0,light:0,escalate:0};
+  sup.forEach(s=>treat[treatmentOf(s)]++);
+  // support-first with reviewed evidence (workspace reviewed>0) — proxy: ws suppliers with >=1 reviewed
+  const supportFirst=sup.filter(s=>treatmentOf(s)==="support");
+  const supportReviewed=supportFirst.filter(s=>{
+    if(!s.ws){ return s.vis.evid==="partial"||s.vis.evid==="third"; }
+    const vals=Object.values(state.workspaces[s.ws].items).map(i=>i.status);
+    return vals.some(x=>x==="reviewed"||x==="verified");
+  }).length;
+  // spend covered by EcoVadis/equiv: suppliers with evid==third (or ws verified>=80%)
+  const totalSpend=sup.reduce((a,s)=>a+s.spend,0);
+  const covSpend=sup.filter(s=>{
+    if(s.ws) return wsEvidenceScore(s.ws)<=1;
+    return s.vis.evid==="third";
+  }).reduce((a,s)=>a+s.spend,0);
+  // critical suppliers covered: clin==critical with reviewed-or-better evidence
+  const crit=sup.filter(s=>s.irr.clin==="critical");
+  const critCovered=crit.filter(s=>{
+    if(s.ws){ return Object.values(state.workspaces[s.ws].items).some(i=>i.status==="reviewed"||i.status==="verified"); }
+    return s.vis.evid==="partial"||s.vis.evid==="third";
+  }).length;
+  // Scope3 cat1 supplier-specific: fraction of ws suppliers with calc done vs all = proxy by count ws / suppliers engaged
+  const wsCount=sup.filter(s=>s.ws).length;
+  const s3=wsCount/sup.length;
+  return {treat,supportFirst:supportFirst.length,supportReviewed,
+    spendCovPct: totalSpend?covSpend/totalSpend:0,
+    crit:crit.length,critCovered,
+    critPct:crit.length?critCovered/crit.length:0,
+    s3Pct:s3};
+}
+function renderClaimsStats(){
+  const s=programStats();
+  const box=document.getElementById("clStats");
+  const card=(lbl,big,sub)=>`<div class="statcard"><div class="lbl">${lbl}</div><div class="statbig">${big}</div><div class="note">${sub||""}</div></div>`;
+  const treatStr=["support","harvest","shared","light","escalate"].map(k=>`${t("treat."+k)}: ${s.treat[k]}`).join(" · ");
+  box.innerHTML=
+    card(t("stat.bytreat"),"",treatStr)+
+    card(t("stat.supportrev"),`${s.supportFirst?Math.round(s.supportReviewed/s.supportFirst*100):0}%`,`${s.supportReviewed}/${s.supportFirst}`)+
+    card(t("stat.spendcov"),`${Math.round(s.spendCovPct*100)}%`)+
+    card(t("stat.critcov"),`${Math.round(s.critPct*100)}%`,`${s.critCovered}/${s.crit}`)+
+    card(t("stat.s3"),`${Math.round(s.s3Pct*100)}%`);
+}
+function evalClaim(id){
+  const s=programStats();
+  const C=CLAIMS.find(c=>c.id===id);
+  let status,tier,coverage,unknown,wording;
+  if(C.kind==="vague"){
+    status="blocked"; tier="—"; coverage="—";
+    unknown={en:"\"Sustainable/green\" is an unqualified general-benefit claim.",es:"\"Sostenible/verde\" es una afirmación general sin matiz.",zh:"\"可持续/绿色\"属无限定的笼统收益声明。"}[state.lang];
+    wording={en:"Blocked — FTC Green Guides: unqualified general environmental benefit claims are not allowed. Use a specific, evidenced coverage figure instead.",es:"Bloqueada — FTC Green Guides: no se permiten afirmaciones ambientales generales sin matiz. Use una cifra de cobertura específica y respaldada.",zh:"禁止——依据 FTC Green Guides：不允许无限定的笼统环境收益声明。改用具体、有证据的覆盖数据。"}[state.lang];
+  } else if(C.kind==="neutral"){
+    status="blocked"; tier="—"; coverage="—";
+    unknown={en:"Offset-based product-level neutrality cannot be substantiated here.",es:"La neutralidad por compensación a nivel de producto no puede sustentarse aquí.",zh:"基于抵消的产品级中和在此无法证实。"}[state.lang];
+    wording={en:"Blocked — EU Empowering Consumers Directive (EU) 2024/825 (applies from 27 Sept 2026) prohibits offset-based \"climate neutral\" product claims.",es:"Bloqueada — Directiva (UE) 2024/825 (desde 27 sept 2026) prohíbe afirmaciones de \"climáticamente neutro\" basadas en compensaciones.",zh:"禁止——欧盟《赋能消费者指令》(EU) 2024/825（自2026年9月27日适用）禁止基于抵消的\"气候中和\"产品声明。"}[state.lang];
+  } else if(C.kind==="reduction"){
+    status="blocked"; tier=t("cl.tier.reviewed"); coverage="—";
+    unknown={en:"Needs two years of supplier-specific data to show a real reduction. Prototype has one period.",es:"Requiere dos años de datos específicos para mostrar una reducción real. El prototipo tiene un periodo.",zh:"需要两年供应商专属数据才能证明真实减排。原型仅有一期。"}[state.lang];
+    wording={en:"Blocked — reduction claims are not allowed until at least two years of supplier-specific data exist. Report absolute emissions by tier meanwhile.",es:"Bloqueada — las afirmaciones de reducción no se permiten hasta tener al menos dos años de datos específicos.",zh:"禁止——在至少两年供应商专属数据之前不得做减排声明。期间可按等级报告绝对排放。"}[state.lang];
+  } else if(C.kind==="coverage_crit"){
+    const pct=Math.round(s.critPct*100);
+    status="qualifier"; tier=t("cl.tier.reviewed"); coverage=`${s.critCovered}/${s.crit} ${t("col.name").toLowerCase()} · 2026`;
+    unknown={en:"Covers reviewed evidence only, not yet all independently verified on site.",es:"Cubre evidencia revisada, aún no toda verificada en sitio.",zh:"仅覆盖已审阅证据，尚未全部现场独立核验。"}[state.lang];
+    wording={en:`${pct}% of our critical suppliers (${s.critCovered} of ${s.crit}) have Merit-reviewed sustainability evidence as of 2026; on-site verification is in progress.`,
+      es:`El ${pct}% de nuestros proveedores críticos (${s.critCovered} de ${s.crit}) tienen evidencia revisada por Merit a 2026; la verificación en sitio está en curso.`,
+      zh:`截至2026年，我们 ${pct}% 的关键供应商（${s.critCovered}/${s.crit}）拥有经 Merit 审阅的可持续证据；现场核验进行中。`}[state.lang];
+  } else { // coverage_spend
+    const pct=Math.round(s.spendCovPct*100);
+    status="qualifier"; tier=t("cl.tier.third"); coverage=`${pct}% ${t("col.spend").toLowerCase()} · 2026`;
+    unknown={en:"Spend-weighted; many small irreplaceable suppliers remain uncovered by headline spend figure.",es:"Ponderado por gasto; muchos proveedores pequeños e insustituibles siguen sin cubrir.",zh:"按采购额加权；许多不可替代的小供应商未被该采购额口径覆盖。"}[state.lang];
+    wording={en:`${pct}% of our supplier spend in 2026 is covered by EcoVadis or equivalent third-party assessments. This figure is spend-weighted and does not reflect supplier count.`,
+      es:`El ${pct}% de nuestro gasto en proveedores en 2026 está cubierto por EcoVadis o evaluaciones de terceros equivalentes. Esta cifra se pondera por gasto.`,
+      zh:`2026年我们 ${pct}% 的供应商采购额已被 EcoVadis 或同等第三方评估覆盖。该数字按采购额加权，不代表供应商数量。`}[state.lang];
+  }
+  return {status,tier,coverage,unknown,wording};
+}
+function renderClaimBuilder(){
+  const sel=document.getElementById("claimSel"); sel.innerHTML="";
+  CLAIMS.forEach(c=>{const o=document.createElement("option");o.value=c.id;o.textContent=c.label[state.lang];if(c.id===state.claimCurrent)o.selected=true;sel.appendChild(o);});
+  const r=evalClaim(state.claimCurrent);
+  const sc={allowed:"allowed",qualifier:"qualifier",blocked:"blocked"}[r.status];
+  const slabel={allowed:t("st.allowed"),qualifier:t("st.qualifier"),blocked:t("st.blocked")}[r.status];
+  document.getElementById("claimOut").innerHTML=
+    `<div class="claim">
+      <div style="margin-bottom:8px"><span class="status ${sc}">${slabel}</span></div>
+      <div class="kv" style="margin-bottom:4px"><span class="k">${t("cl.evtier")}</span><span class="v">${r.tier}</span></div>
+      <div class="kv" style="margin-bottom:4px"><span class="k">${t("cl.coverage")}</span><span class="v">${r.coverage}</span></div>
+      <div style="margin:6px 0"><span class="k">${t("cl.unknown")}:</span> <span class="unknown">${r.unknown}</span></div>
+      <div class="approved"><b>${t("cl.approved")}:</b><br>${r.wording}</div>
+    </div>`;
+}
+function renderAudience(){
+  const h=t("aud.header"), rows=t("aud.rows");
+  let html="<thead><tr>"+h.map(x=>`<th>${x}</th>`).join("")+"</tr></thead><tbody>";
+  rows.forEach(r=>{ html+="<tr>"+r.map((c,i)=>`<td${i?'':' style="font-weight:700"'}>${c}</td>`).join("")+"</tr>"; });
+  html+="</tbody>";
+  document.getElementById("audTable").innerHTML=html;
+}
+
+/* ============================================================
+   WIRING
+   ============================================================ */
+function renderAll(){
+  applyStaticText();
+  renderTriage();
+  renderWorkspace();
+  renderClaimsStats();
+  renderClaimBuilder();
+  renderAudience();
+}
+function switchTab(tab){
+  document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===tab));
+  document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active", v.id==="view-"+tab));
+}
+
+function init(){
+  load();
+  // optional deep-link for demo/testing: ?lang=es&tab=claims
+  try{ const q=new URLSearchParams(location.search);
+    if(q.get("lang")&&I18N[q.get("lang")]) state.lang=q.get("lang"); }catch(e){}
+  document.querySelectorAll(".langsw button").forEach(b=>b.addEventListener("click",()=>{ state.lang=b.dataset.lang; save(); renderAll(); }));
+  document.querySelectorAll("nav.tabs button").forEach(b=>b.addEventListener("click",()=>switchTab(b.dataset.tab)));
+  document.getElementById("resetBtn").addEventListener("click",()=>{ if(confirm(t("reset")+"?")){ localStorage.removeItem(LS_KEY); state=freshState(); save(); renderAll(); switchTab("triage"); }});
+  document.getElementById("rankSpend").addEventListener("click",()=>{state.rankMode="spend";save();renderTriage();});
+  document.getElementById("rankRisk").addEventListener("click",()=>{state.rankMode="risk";save();renderTriage();});
+  document.getElementById("topN").addEventListener("input",e=>{state.topN=+e.target.value;save();renderTriage();});
+  document.getElementById("detailClose").addEventListener("click",()=>{document.getElementById("detailPanel").style.display="none";});
+  document.getElementById("wsSel").addEventListener("change",e=>{state.wsCurrent=e.target.value;save();renderWorkspace();});
+  document.getElementById("exportBtn").addEventListener("click",exportPack);
+  document.getElementById("printBtn").addEventListener("click",printSummary);
+  document.getElementById("claimSel").addEventListener("change",e=>{state.claimCurrent=e.target.value;save();renderClaimBuilder();});
+  renderAll();
+  try{ const q=new URLSearchParams(location.search); if(q.get("tab")) switchTab(q.get("tab")); }catch(e){}
+}
+document.addEventListener("DOMContentLoaded",init);
+</script>
+</body>
+</html>
